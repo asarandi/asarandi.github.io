@@ -1,1 +1,118 @@
-hello world!
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>demo</title>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    </head>
+
+    <body>
+        <div>
+            <input type="number" id="num">
+            <button onclick="myFunc(getElementById('num').value)">ok</button>
+            <p id="title"></p>
+            <p id="file"></p>
+            <a id="link" href="#">link</a>
+        </div>
+    </body>
+
+    <script>
+        function result(t,f) {
+            $("#title").prepend(t+'<br>');
+            $("#file").prepend(f+'<br>');
+            $("#link").prepend(t+'<br>');
+            $("#link").prepend('<a href="'+f+'">'+t+'</a><br>');
+            return true;
+        }
+        function vc(url) {
+            var base = null;
+            if (url.startsWith('https://vcstream.to/embed/')) {
+                base = 'https://vcstream.to/';
+            } else if (url.startsWith('https://loadvid.online/embed/')) {
+                base = 'https://loadvid.online/';
+            } else {
+                return ({'title': 'vc failed 0', 'link': ''});                        
+            }
+            fid = url.split('/embed/')[1];
+            $.ajax({
+                dataType: "json",
+                url: base + 'player?fid=' + fid + '&page=embed',
+                data: null,
+                success: function(data, textStatus, jqXHR) {
+                    if (textStatus == "success") {
+                        if (data['status'] == true) {
+                            var idx = data['html'].indexOf('sources = [{"file":"');
+                            if (idx == -1) {
+                                return result('vc failed 3a', '#');
+                            }
+                            data = data['html'].slice(idx);
+                            idx = data.indexOf('}]');                            
+                            if (idx == -1) {
+                                return result('vc failed 3b', '#');
+                            }
+                            file = JSON.parse(data.slice(11, idx+1))['file'];
+                            data = data.slice(idx);
+                            idx = data.indexOf("title: '");                            
+                            if (idx == -1) {                                
+                                return result('vc failed 4a', file);
+                            }
+                            data = data.slice(idx+8);
+                            title = data.slice(0, data.indexOf("'"));
+                            return result(title, file);
+                        } else {
+                            return result('vc failed 2a', '#');
+                        }
+                    } else {                 
+                        return result('vc failed 1a', '#');
+                    }
+                }
+            });
+        }
+        function myFunc(num) {
+            $.ajax({
+              dataType: "json",
+              url: 'https://solarmoviez.ru/ajax/v4_movie_episodes/' + num,
+              data: null,
+              success: function (data, textStatus, jqXHR) {
+                    if (textStatus == "success") {
+                        if (data['status'] == true) {
+                            var insert = $(data['html']);
+                            $(".ep-item", insert).each(function () {
+                                var data_id = $(this).attr('data-id');
+                                $.ajax({
+                                    dataType: "json",
+                                    url: 'https://solarmoviez.ru/ajax/movie_embed/' + data_id,
+                                    data: null,
+                                    success: function (data, textStatus, jqXHR) {
+                                        if (textStatus == "success") {
+                                            if (data['status'] == 1) {
+                                                url = data['src'];
+                                                if (url.startsWith('https://vcstream.to/embed/')) {
+                                                    return vc(url);
+                                                } else if (url.startsWith('https://loadvid.online/embed/')) {
+                                                    return vc(url);
+                                                } else if (url.startsWith('https://streamango.com/embed/')) {
+                                                
+                                                } else {
+                                                    return result('init failed 3a', url);
+                                                };
+                                            } else {
+                                                return result('init failed 2b', '#');
+                                            };
+                                        } else {                                            
+                                            return result('init failed 2b', '#');
+                                        };
+                                    }
+                                });                                
+                            });
+                        } else {
+                            return result('init failed 1b', '#');
+                        };
+                    } else {                         
+                        return result('init failed 1a', '#');
+                    };
+                }
+            });
+        };
+    </script>
+</html>
